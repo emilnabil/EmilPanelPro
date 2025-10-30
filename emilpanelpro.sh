@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## setup command:
-##   wget https://raw.githubusercontent.com/emilnabil/download-plugins/refs/heads/main/EmilPanelPro/emilpanelpro.sh -O - | /bin/sh
+##   wget https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/emilpanelpro.sh -O - | /bin/sh
 
 TMPPATH="/tmp/EmilPanelPro"
 STATUS=""
@@ -26,7 +26,7 @@ if [ -f /var/lib/dpkg/status ]; then
     INSTALLER="apt-get"
 elif [ -f /var/lib/opkg/status ]; then
     STATUS="/var/lib/opkg/status"
-    OSTYPE="Dream"
+    OSTYPE="OpenSource"
     INSTALLER="opkg"
 else
     echo "✘ Unsupported package system."
@@ -161,10 +161,6 @@ if ! tar -tzf "$PLUGIN_ARCHIVE" >/dev/null 2>&1; then
     exit 1
 fi
 
-# عرض محتويات الأرشيف لفهم الهيكل
-echo "Archive contents:"
-tar -tzf "$PLUGIN_ARCHIVE" | head -10
-
 # استخراج الملفات
 echo "Extracting files..."
 if tar -xzf "$TMPPATH/$PLUGIN_ARCHIVE" -C /; then
@@ -174,95 +170,106 @@ else
     exit 1
 fi
 
-sync
-echo "#########################################################"
+# تحميل ملف plugin المناسب بناءً على نوع الصورة وإصدار البايثون
+echo "Downloading appropriate plugin file..."
 
-# البحث عن جميع ملفات plugin في /tmp بعد الاستخراج
-echo "Searching for plugin files in /tmp..."
-find /tmp -name "plugin*" -type f 2>/dev/null
+if [ "$OSTYPE" = "DreamOs" ]; then
+    # صورة دريم بوكس الرسمية
+    PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/dream/plugin_dream.pyo"
+    PLUGIN_FILE="plugin.pyo"
+    echo "✔ DreamOS image detected, downloading plugin_dream.pyo"
+    
+elif [ "$OSTYPE" = "OpenSource" ]; then
+    # صور الاوبن سورس
+    case "$PYTHON_VERSION" in
+        "py2")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py2/plugin_py2.pyo"
+            PLUGIN_FILE="plugin.pyo"
+            echo "✔ Open Source image with Python 2, downloading plugin_py2.pyo"
+            ;;
+        "py3.13")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.13.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with Python 3.13, downloading plugin_py3.13.pyc"
+            ;;
+        "py3.12")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.12.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with Python 3.12, downloading plugin_py3.12.pyc"
+            ;;
+        "py3.11")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.11.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with Python 3.11, downloading plugin_py3.11.pyc"
+            ;;
+        "py3.10")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.10.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with Python 3.10, downloading plugin_py3.10.pyc"
+            ;;
+        "py3.9")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.9.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with Python 3.9, downloading plugin_py3.9.pyc"
+            ;;
+        "py3.8")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.8.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with Python 3.8, downloading plugin_py3.8.pyc"
+            ;;
+        "py3.7")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.7.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with Python 3.7, downloading plugin_py3.7.pyc"
+            ;;
+        "py3.6")
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.6.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with Python 3.6, downloading plugin_py3.6.pyc"
+            ;;
+        *)
+            # إصدارات بايثون أخرى - استخدام الإصدار العام
+            PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.pyc"
+            PLUGIN_FILE="plugin.pyc"
+            echo "✔ Open Source image with $PYTHON_VERSION, downloading general plugin_py3.pyc"
+            ;;
+    esac
+fi
 
-# نسخ الملفات المناسبة
-PLUGIN_SOURCE=""
-PLUGIN_TARGET="$PLUGINPATH/plugin.pyc"
-
-# البحث عن الملف المناسب حسب إصدار البايثون
-if [ "$OSTYPE" = "DreamOs" ] && [ -f "/tmp/plugin_dream.pyo" ]; then
-    PLUGIN_SOURCE="/tmp/plugin_dream.pyo"
-    PLUGIN_TARGET="$PLUGINPATH/plugin.pyo"
-    echo "✔ Found DreamOS plugin: $PLUGIN_SOURCE"
-elif [ -f "/tmp/plugin_${PYTHON_VERSION}.pyc" ]; then
-    PLUGIN_SOURCE="/tmp/plugin_${PYTHON_VERSION}.pyc"
-    echo "✔ Found specific plugin for $PYTHON_VERSION: $PLUGIN_SOURCE"
-elif [ -f "/tmp/plugin.pyc" ]; then
-    PLUGIN_SOURCE="/tmp/plugin.pyc"
-    echo "✔ Found general plugin.pyc"
-elif [ -f "/tmp/plugin.pyo" ]; then
-    PLUGIN_SOURCE="/tmp/plugin.pyo"
-    PLUGIN_TARGET="$PLUGINPATH/plugin.pyo"
-    echo "✔ Found plugin.pyo"
+# تحميل ملف plugin
+if wget -q "$PLUGIN_URL" -O "$PLUGINPATH/$PLUGIN_FILE"; then
+    echo "✔ Plugin file downloaded successfully: $PLUGIN_FILE"
 else
-    # البحث عن أي ملف plugin
-    PLUGIN_SOURCE=$(find /tmp -maxdepth 1 -name "plugin*" -type f 2>/dev/null | head -1)
-    if [ -n "$PLUGIN_SOURCE" ]; then
-        echo "✔ Found plugin file: $PLUGIN_SOURCE"
+    echo "⚠ Failed to download plugin file from: $PLUGIN_URL"
+    # محاولة تحميل الإصدار العام كبديل
+    if [ "$OSTYPE" = "DreamOs" ]; then
+        ALT_PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/dream/plugin_dream.pyo"
+        if wget -q "$ALT_PLUGIN_URL" -O "$PLUGINPATH/$PLUGIN_FILE"; then
+            echo "✔ Alternative plugin file downloaded successfully"
+        else
+            echo "✘ All plugin download attempts failed"
+        fi
     else
-        echo "⚠ No plugin files found in /tmp"
+        ALT_PLUGIN_URL="https://github.com/emilnabil/EmilPanelPro/raw/refs/heads/main/py3/plugin_py3.pyc"
+        if wget -q "$ALT_PLUGIN_URL" -O "$PLUGINPATH/$PLUGIN_FILE"; then
+            echo "✔ Alternative plugin file downloaded successfully"
+        else
+            echo "✘ All plugin download attempts failed"
+        fi
     fi
 fi
 
-# نسخ الملف إذا وجد
-if [ -n "$PLUGIN_SOURCE" ] && [ -f "$PLUGIN_SOURCE" ]; then
-    cp -f "$PLUGIN_SOURCE" "$PLUGIN_TARGET"
-    echo "✔ Copied $(basename $PLUGIN_SOURCE) to $(basename $PLUGIN_TARGET)"
-else
-    echo "⚠ No plugin file available to copy"
-fi
-
-# التحقق من المحتويات النهائية
-echo "Final plugin directory contents:"
-ls -la "$PLUGINPATH/" 2>/dev/null || echo "Directory is empty"
-
-# تعيين الصلاحيات
-chmod -R 755 "$PLUGINPATH"
-find "$PLUGINPATH" -name "*.py" -exec chmod +x {} \; 2>/dev/null
-find "$PLUGINPATH" -name "*.pyo" -exec chmod +x {} \; 2>/dev/null
-find "$PLUGINPATH" -name "*.pyc" -exec chmod +x {} \; 2>/dev/null
-
-# التحقق النهائي من التثبيت
-if [ -f "$PLUGINPATH/plugin.py" ] || [ -f "$PLUGINPATH/plugin.pyc" ] || [ -f "$PLUGINPATH/plugin.pyo" ]; then
-    echo "✔ Plugin installation verified successfully"
-else
-    echo "✘ ERROR: No main plugin file found after installation"
-    exit 1
-fi
-
-sleep 3
-echo "> Cleaning all temporary files..."
-rm -rf /tmp/EmilPanelPro*
-rm -f /tmp/plugin* /tmp/*.pyc /tmp/*.pyo
-
 sync
-echo ""
 echo "#########################################################"
-echo "#  ✔ EmilPanelPro INSTALLED SUCCESSFULLY               #"
-echo "#         Uploaded by Emil Nabil                       #"
-echo "#    Python version: $PYTHON_VERSION                   #"
-echo "#    OS type: $OSTYPE                                  #"
+echo "#              EmilPanelPro Installation                #"
+echo "#                 Completed Successfully!              #"
 echo "#########################################################"
-echo ""
-
-echo "Restarting device..."
-sleep 3
-
-if command -v systemctl >/dev/null 2>&1; then
-    killall -9 enigma2 >/dev/null 2>&1
-    systemctl restart enigma2
-else
-    killall -9 enigma2 >/dev/null 2>&1
-    /usr/bin/enigma2 &
-fi
-
+echo "# Plugin path: $PLUGINPATH"
+echo "# Python version: $PY_VER"
+echo "# Image type: $OSTYPE"
+echo "#########################################################"
+rm -rf /tmp/EmilPanelPro*
+sleep 2 
 exit 0
-
 
 
